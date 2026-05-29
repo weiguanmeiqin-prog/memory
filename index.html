@@ -420,7 +420,21 @@ function unlockMemory(memoryId){
         );
 
         renderMemories();
+/* =========================
+   URLから記憶取得
+========================= */
 
+const params =
+new URLSearchParams(window.location.search);
+
+const memoryId =
+params.get("id");
+
+if(memoryId){
+
+    unlockMemory(memoryId);
+
+}
         /* ガチャ解放 */
 
         if(collectedMemories.length >= 5){
