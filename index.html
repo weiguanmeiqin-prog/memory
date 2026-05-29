@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>あの頃屋 - 記憶収集保管庫</title>
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:"Yu Gothic",sans-serif;
+}
+body{
+    height:100vh;
+    overflow:hidden;
+    color:white;
+    transition:background 2s ease;
+    position:relative;
+}
+/* 背景ぼかし */
+body::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    backdrop-filter:blur(10px);
+    z-index:-1;
+}
+/* メイン */
+.container{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    height:100%;
+    text-align:center;
+    padding:20px;
+}
+/* タイトル */
+h1{
+    font-size:4rem;
+    letter-spacing:4px;
+    margin-bottom:10px;
+    text-shadow:0 0 20px rgba(255,255,255,0.3);
+}
+/* 説明 */
+.description{
+    font-size:0.95rem;
+    opacity:0.85;
+    max-width:700px;
+    line-height:1.9;
+    margin-bottom:40px;
+}
+/* ボタン */
+.memory-btn{
+    padding:18px 40px;
+    border:none;
+    border-radius:999px;
+    background:rgba(255,255,255,0.15);
+    color:white;
+    font-size:1rem;
+    cursor:pointer;
+    backdrop-filter:blur(10px);
+    transition:0.3s;
+    margin-bottom:30px;
+}
+.memory-btn:hover{
+    transform:scale(1.05);
+    background:rgba(255,255,255,0.25);
+}
+/* 記憶一覧 */
+.memory-box{
+    width:90%;
+    max-width:700px;
+    background:rgba(255,255,255,0.08);
+    border-radius:20px;
+    padding:25px;
+    backdrop-filter:blur(12px);
+    text-align:left;
+    max-height:300px;
+    overflow-y:auto;
+}
+.memory-box h2{
+    margin-bottom:15px;
+    font-size:1.3rem;
+}
+.memory{
+    padding:14px;
+    margin-bottom:10px;
+    border-radius:12px;
+    background:rgba(255,255,255,0.08);
+    animation:fadeIn 0.8s ease;
+}
+/* 演出 */
+.overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.45);
+    backdrop-filter:blur(8px);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    font-size:2rem;
+    letter-spacing:3px;
+    opacity:0;
+    pointer-events:none;
+    transition:1s;
+    text-align:center;
+    padding:20px;
+}
+.overlay.show{
+    opacity:1;
+}
+/* ガチャ */
+.gacha{
+    margin-top:25px;
+    font-size:0.9rem;
+    opacity:0.8;
+}
+/* アニメーション */
+@keyframes fadeIn{
+    from{
+        opacity:0;
+        transform:translateY(10px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>あの頃屋</h1>
+    <p class="description">
+        ここは、失われた放課後の記憶を収集・保管するための小さな保管庫。<br>
+        NFCタグを読み込むことで、誰かの夕方や夏休みの断片が記録されます。<br><br>
+        集めた記憶は、現実世界の「記憶抽出ガチャ」に使用できます。
+    </p>
+    <!-- テスト用ボタン -->
+    <button class="memory-btn" onclick="testMemory()">
+        記憶を復元する
+    </button>
+    <div class="memory-box">
+        <h2>収集した記憶</h2>
+        <div id="memoryList"></div>
+        <div class="gacha">
+            記憶収集数：
+            <span id="memoryCount">0</span>
+            / 5
+            <br><br>
+            5個集めると現実の記憶抽出ガチャを回せます。
+        </div>
+    </div>
+</div>
+<div class="overlay" id="overlay">
+    記憶を復元しています...
+</div>
+<script>
+/* =========================
+   時間帯背景
+========================= */
+const hour = new Date().getHours();
+if(hour >= 5 && hour < 11){
+    document.body.style.background =
+    "linear-gradient(to bottom,rgb(180,220,255),rgb(120,180,255))";
+}
+else if(hour >= 11 && hour < 16){
+    document.body.style.background =
+    "linear-gradient(to bottom,rgb(90,170,255),rgb(40,120,255))";
+}
+else if(hour >= 16 && hour < 19){
+    document.body.style.background =
+    "linear-gradient(to bottom,rgb(255,170,120),rgb(255,120,80))";
+}
+else{
+    document.body.style.background =
+    "linear-gradient(to bottom,rgb(20,30,70),rgb(5,10,30))";
+}
+/* =========================
+   記憶データ
+========================= */
+const memoryDatabase = {
+    "memory-001":{
+        title:"17:43のリビング",
+        text:"テレビだけがついていた。"
+    },
+    "memory-002":{
+        title:"夏休み前日",
+        text:"宿題はまだ白紙だった。"
+    },
+    "memory-003":{
+        title:"DS充電中",
+        text:"赤いランプだけが光っていた。"
+    },
+    "memory-004":{
+        title:"扇風機",
+        text:"カーテンがゆっくり揺れていた。"
+    },
+    "memory-005":{
+        title:"帰る時間",
+        text:"『そろそろ帰るわ』と言ったのにまだ遊んでいた。"
+    }
+};
+/* =========================
+   保存データ
+========================= */
+let collectedMemories =
+JSON.parse(localStorage.getItem("collectedMemories")) || [];
+/* =========================
+   表示更新
+========================= */
+function renderMemories(){
+    const memoryList =
+    document.getElementById("memoryList");
+    memoryList.innerHTML = "";
+    collectedMemories.forEach((memoryId,index)=>{
+        const memoryData =
+        memoryDatabase[memoryId];
+        const memoryDiv =
+        document.createElement("div");
+        memoryDiv.classList.add("memory");
+        memoryDiv.innerHTML =
+        `
+        <strong>記憶 No.${index + 1}</strong><br><br>
+        『${memoryData.title}』<br><br>
+        ${memoryData.text}
+        `;
+        memoryList.prepend(memoryDiv);
+    });
+    document.getElementById("memoryCount")
+    .textContent = collectedMemories.length;
+}
+renderMemories();
+/* =========================
+   記憶解放
+========================= */
+function unlockMemory(memoryId){
+    const overlay =
+    document.getElementById("overlay");
+    /* 存在しない記憶 */
+    if(!memoryDatabase[memoryId]){
+        overlay.innerHTML =
+        "破損した記憶";
+        overlay.classList.add("show");
+        setTimeout(()=>{
+            overlay.classList.remove("show");
+        },2000);
+        return;
+    }
+    /* 既に取得済み */
+    if(collectedMemories.includes(memoryId)){
+        overlay.innerHTML =
+        "この記憶は既に保管されています";
+        overlay.classList.add("show");
+        setTimeout(()=>{
+            overlay.classList.remove("show");
+        },2000);
+        return;
+    }
+    /* 演出開始 */
+    overlay.innerHTML =
+    "記憶を復元しています...";
+    overlay.classList.add("show");
+    setTimeout(()=>{
+        const memory =
+        memoryDatabase[memoryId];
+        overlay.innerHTML =
+        `
+        新しい記憶を発見<br><br>
+        『${memory.title}』
+        `;
+    },1800);
+    setTimeout(()=>{
+        overlay.classList.remove("show");
+        collectedMemories.push(memoryId);
+        localStorage.setItem(
+            "collectedMemories",
+            JSON.stringify(collectedMemories)
+        );
+        renderMemories();
+        /* ガチャ解放 */
+        if(collectedMemories.length >= 5){
+            setTimeout(()=>{
+                alert(
+`記憶収集完了
+「記憶抽出ガチャ」が解放されました`
+                );
+            },500);
+        }
+    },4000);
+}
+/* =========================
+   URLから記憶取得
+========================= */
+const params =
+new URLSearchParams(window.location.search);
+const memoryId =
+params.get("id");
+if(memoryId){
+    unlockMemory(memoryId);
+}
+/* =========================
+   テスト用
+========================= */
+function testMemory(){
+    unlockMemory("memory-001");
+}
+</script>
+</body>
+</html>
