@@ -286,59 +286,6 @@ function renderMemories(){
 
 renderMemories();
 
-/* =========================
-   NFC読み取り処理
-========================= */
-
-async function startNFC(){
-
-    /* Web NFC対応確認 */
-
-    if("NDEFReader" in window){
-
-        try{
-
-            const ndef = new NDEFReader();
-
-            await ndef.scan();
-
-            console.log("NFCスキャン開始");
-
-            ndef.onreading = (event)=>{
-
-                const decoder =
-                new TextDecoder();
-
-                for(const record of event.message.records){
-
-                    const memoryId =
-                    decoder.decode(record.data);
-
-                    unlockMemory(memoryId);
-
-                }
-
-            };
-
-        }
-
-        catch(error){
-
-            alert("NFC読み取りに失敗しました");
-
-            console.error(error);
-
-        }
-
-    }
-
-    else{
-
-        alert("この端末はNFCに対応していません");
-
-    }
-
-}
 
 /* =========================
    記憶解放
