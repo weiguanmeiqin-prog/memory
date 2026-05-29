@@ -139,10 +139,7 @@ h1{
         NFCタグを読み込むことで、誰かの夕方や夏休みの断片が記録されます。<br><br>
         集めた記憶は、現実世界の「記憶抽出ガチャ」に使用できます。
     </p>
-    <!-- テスト用ボタン -->
-    <button class="memory-btn" onclick="testMemory()">
-        記憶を復元する
-    </button>
+
     <div class="memory-box">
         <h2>収集した記憶</h2>
         <div id="memoryList"></div>
@@ -302,12 +299,7 @@ params.get("id");
 if(memoryId){
     unlockMemory(memoryId);
 }
-/* =========================
-   テスト用
-========================= */
-function testMemory(){
-    unlockMemory("memory-001");
-}
+
 </script>
 </body>
 </html>
