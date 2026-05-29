@@ -1,0 +1,262 @@
+<script>
+
+/* =========================
+   時間帯背景
+========================= */
+
+const hour = new Date().getHours();
+
+if(hour >= 5 && hour < 11){
+    document.body.style.background =
+    "linear-gradient(to bottom,rgb(180,220,255),rgb(120,180,255))";
+}
+else if(hour >= 11 && hour < 16){
+    document.body.style.background =
+    "linear-gradient(to bottom,rgb(90,170,255),rgb(40,120,255))";
+}
+else if(hour >= 16 && hour < 19){
+    document.body.style.background =
+    "linear-gradient(to bottom,rgb(255,170,120),rgb(255,120,80))";
+}
+else{
+    document.body.style.background =
+    "linear-gradient(to bottom,rgb(20,30,70),rgb(5,10,30))";
+}
+
+/* =========================
+   NFC記憶データ
+========================= */
+
+const memoryDatabase = {
+
+    "memory-001":{
+        title:"17:43のリビング",
+        text:"テレビだけがついていた。"
+    },
+
+    "memory-002":{
+        title:"夏休み前日",
+        text:"宿題はまだ白紙だった。"
+    },
+
+    "memory-003":{
+        title:"DS充電中",
+        text:"赤いランプだけが光っていた。"
+    },
+
+    "memory-004":{
+        title:"扇風機",
+        text:"カーテンがゆっくり揺れていた。"
+    },
+
+    "memory-005":{
+        title:"帰る時間",
+        text:"『そろそろ帰るわ』と言ったのにまだ遊んでいた。"
+    }
+
+};
+
+/* =========================
+   保存データ読み込み
+========================= */
+
+let collectedMemories =
+JSON.parse(localStorage.getItem("collectedMemories")) || [];
+
+/* =========================
+   表示更新
+========================= */
+
+function renderMemories(){
+
+    const memoryList =
+    document.getElementById("memoryList");
+
+    memoryList.innerHTML = "";
+
+    collectedMemories.forEach((memoryId,index)=>{
+
+        const memoryData =
+        memoryDatabase[memoryId];
+
+        const memoryDiv =
+        document.createElement("div");
+
+        memoryDiv.classList.add("memory");
+
+        memoryDiv.innerHTML =
+        `
+        <strong>記憶 No.${index + 1}</strong><br><br>
+
+        『${memoryData.title}』<br><br>
+
+        ${memoryData.text}
+        `;
+
+        memoryList.prepend(memoryDiv);
+
+    });
+
+    document.getElementById("memoryCount")
+    .textContent = collectedMemories.length;
+
+}
+
+renderMemories();
+
+/* =========================
+   NFC読み取り処理
+========================= */
+
+async function startNFC(){
+
+    /* Web NFC対応確認 */
+
+    if("NDEFReader" in window){
+
+        try{
+
+            const ndef = new NDEFReader();
+
+            await ndef.scan();
+
+            console.log("NFCスキャン開始");
+
+            ndef.onreading = (event)=>{
+
+                const decoder =
+                new TextDecoder();
+
+                for(const record of event.message.records){
+
+                    const memoryId =
+                    decoder.decode(record.data);
+
+                    unlockMemory(memoryId);
+
+                }
+
+            };
+
+        }
+
+        catch(error){
+
+            alert("NFC読み取りに失敗しました");
+
+            console.error(error);
+
+        }
+
+    }
+
+    else{
+
+        alert("この端末はNFCに対応していません");
+
+    }
+
+}
+
+/* =========================
+   記憶解放
+========================= */
+
+function unlockMemory(memoryId){
+
+    const overlay =
+    document.getElementById("overlay");
+
+    /* 存在しない記憶 */
+
+    if(!memoryDatabase[memoryId]){
+
+        overlay.innerHTML =
+        "破損した記憶";
+
+        overlay.classList.add("show");
+
+        setTimeout(()=>{
+
+            overlay.classList.remove("show");
+
+        },2000);
+
+        return;
+
+    }
+
+    /* 既に取得済み */
+
+    if(collectedMemories.includes(memoryId)){
+
+        overlay.innerHTML =
+        "この記憶は既に保管されています";
+
+        overlay.classList.add("show");
+
+        setTimeout(()=>{
+
+            overlay.classList.remove("show");
+
+        },2000);
+
+        return;
+
+    }
+
+    /* 新規取得演出 */
+
+    overlay.innerHTML =
+    "記憶を復元しています...";
+
+    overlay.classList.add("show");
+
+    setTimeout(()=>{
+
+        const memory =
+        memoryDatabase[memoryId];
+
+        overlay.innerHTML =
+        `
+        新しい記憶を発見<br><br>
+
+        『${memory.title}』
+        `;
+
+    },1800);
+
+    setTimeout(()=>{
+
+        overlay.classList.remove("show");
+
+        collectedMemories.push(memoryId);
+
+        localStorage.setItem(
+            "collectedMemories",
+            JSON.stringify(collectedMemories)
+        );
+
+        renderMemories();
+
+        /* ガチャ解放 */
+
+        if(collectedMemories.length >= 5){
+
+            setTimeout(()=>{
+
+                alert(
+`記憶収集完了
+
+「記憶抽出ガチャ」が解放されました`
+                );
+
+            },500);
+
+        }
+
+    },4000);
+
+}
+
+</script>
